@@ -1,0 +1,34 @@
+export async function POST(req) {
+  try {
+    const { payload } = await req.json();
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!token || !chatId) return new Response(JSON.stringify({ ok: false, error: "NO_ENV" }), { status: 500 });
+
+    const text = `✅ НОВАЯ ЗАЯВКА\n\n` +
+      `Направление: ${payload.from} → ${payload.to}\n` +
+      `Сумма: ${payload.amount}\n` +
+      `Комиссия: ${payload.fee} (${payload.fee ? 5 : 0}%)\n` +
+      `К зачислению клиенту: ${payload.receive}\n` +
+      (payload.cardSender ? `Карта отправителя: ${payload.cardSender}\n` : "") +
+      (payload.cardRecipient ? `Карта получателя: ${payload.cardRecipient}\n` : "") +
+      (payload.payeerRecipient ? `PAYEER получателя: ${payload.payeerRecipient}\n` : "") +
+      (payload.payeerTxNote ? `PAYEER заметка/tx: ${payload.payeerTxNote}\n` : "") +
+      (payload.sendCheck ? `Чек @send: ${payload.sendCheck}\n` : "") +
+      (payload.telegramUser ? `Telegram клиента: ${payload.telegramUser}\n` : "") +
+      (payload.comment ? `Комментарий: ${payload.comment}\n` : "") +
+      `\nСтатус: создано`;
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    });
+
+    const data = await res.json();
+    return new Response(JSON.stringify({ ok: !!data.ok, resp: data }), { status: 200 });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500 });
+  }
+}
